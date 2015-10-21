@@ -1,0 +1,307 @@
+#+TITLE: Dwarf Fortress Lazy Newb Pack, on Docker
+#+AUTHOR: Tariq Kamal
+#+EMAIL: github.t-boy@xoxy.net
+#+DATE: <2015-10-19 Mon>
+
+Setup for Tarn and Zach Adams' [[http://www.bay12games.com/dwarves/][Dwarf Fortress]], using the [[http://lazynewbpack.com/linux/][Linux Lazy Newb Pack]], running on top of [[https://www.docker.com/][Docker]].
+
+Current setup is for DF v0.40.24 (x64 LNP). As stated by the LNP Linux page:
+
+#+BEGIN_QUOTE
+If you are using a x64 bit system then you should download the x64 PyLNP interface, and 32 bit should download i686 PyLNP interface
+#+END_QUOTE
+
+This setup needs to be tested on Debian Jessie, but should work on any system with Docker for Linux installed.
+
+* Rationale
+
+As stated in the [[http://www.bay12forums.com/smf/index.php?topic=140966.0][forum posting]], this LNP has been tested only on Ubuntu 14.04, on a fresh install. I'm not using Ubuntu — while I /am/ using Debian, I've noticed enough differences between both distros to realize that this sort of thing is a /pain in the ass/ to deal with.
+
+Then I discovered Docker, and I noticed [[https://github.com/pgrange/docker-dwarf_fortress_lnp][other projects]] using Docker to run LNP. Some even managed to do it so that they end up [[http://fabiorehm.com/blog/2014/09/11/running-gui-apps-with-docker/][running GUI apps with Docker]]. 
+
+Which is neat. I wanted to do that.
+
+* How to use
+
+First, follow the instructions for [[https://docs.docker.com/linux/started/][installing Docker for Linux]]. Once you're able to run both =hello-world= and =whalesay=, you should be able to install this.
+
+Clone this repository, or even download the ZIP file, and then run the following command:
+
+#+BEGIN_SRC sh :tangle no
+make
+#+END_SRC
+
+Once that's done, try and run =start-df-lnp-docker= and see if that works.
+
+** How this works
+
+Basically, so anyway, ther:
+
+1. =Makefile=, downloads the required ZIP files and creates the Docker image.
+2. =Dockerfile=, which tells Docker how to create and setup the image.
+
+*** Dockerfile
+m
+The Dockerfile's basic structure is as follows:
+
+#+NAME: Dockerfile
+#+BEGIN_SRC dockerfile :tangle Dockerfile :noweb yes
+<<metadata>>
+
+<<download-prerequisites>>
+
+<<prepare-environment>>
+
+<<setup-defaults>>
+#+END_SRC
+
+**** Setting up the metadata
+Firstly, begin by defining the docker image's meta-data and it's base image:
+
+#+NAME: metadata
+#+BEGIN_SRC dockerfile
+FROM ubuntu:14.04
+
+MAINTAINER Tariq Kamal <github.t-boy@xoxy.net>
+
+LABEL vendor="Tariq Kamal" \
+      net.bebudak.version.is_alpha \
+      net.bebudak.version="0.0.0-alpha" \
+      net.bebudak.release_date="2015-10-19" \
+      net.bebudak.project_name="df/lnp/docker"
+#+END_SRC
+
+**** Downloading prerequisites
+Then, set up and download the pre-requisites for the program:
+
+#+NAME: download-prerequisites
+#+BEGIN_SRC dockerfile
+RUN dpkg --add-architecture i386 && \
+    apt-get update -y && \
+    apt-get install -y default-jre libsdl1.2debian:i386 libsdl-image1.2:i386 libsdl-ttf2.0-0:i386 libglu1-mesa:i386 libgtk2.0-0:i386  libopenal1:i386 libjpeg62:i386 coreutils g++ gcc patch xterm sed  python bzip2 qtchooser qtbase5-dev qtbase5-dev-tools qtscript5-dev qt5-qmake libqt5script5 libqt5scripttools5 libqxt-core0 libqxt-gui0 wget unzip locales
+#+END_SRC
+
+This one will take /quite/ a long while.
+
+**** Prepare Environment
+Set up the locales, the installation environment, and basically everything.
+
+#+NAME: prepare-environment
+#+BEGIN_SRC dockerfile :noweb yes
+<<preamble>>
+
+<<lnp-unzip>>
+<<df-tar-bz2>>
+<<lnp-config>>
+#+END_SRC
+
+***** The preamble
+Essentially, set up the staging area — in this case, =/home/Urist/bin/df=, and ensure that the locales are set properly.
+
+#+NAME: preamble
+#+BEGIN_SRC dockerfile
+ENV LANG en_US.UTF-8
+RUN locale-gen en_US.UTF-8
+
+RUN mkdir -p /home/Urist/bin/df
+WORKDIR /home/Urist/bin/df
+#+END_SRC
+
+***** Bring in the LNP zip file.
+Copy the LNP zip file (which should exist, since =Makefile= should guarantee it) into the container, unzip, and then clean up.
+
+#+NAME: lnp-unzip
+#+BEGIN_SRC dockerfile
+COPY resources/install.zip .
+RUN unzip install.zip -d . && \
+    mv 04024r3-x64/* . && \
+    rm install.zip
+#+END_SRC
+
+***** Bring in the DF =tar.bz2= file.
+Interestingly enough, I discovered that =ADD= in docker allows Docker to untar the archive automatically in the system. So this is really just one line.
+
+#+NAME: df-tar-bz2
+#+BEGIN_SRC dockerfile
+ADD resources/df.tar.bz2 .
+#+END_SRC
+
+***** Copy the LNP configuration file
+Once all of that's done, copy the configuration file needed to resolve the bug with LNP and =xdlg-terminal=.
+#+NAME: lnp-config
+#+BEGIN_SRC dockerfile
+COPY resources/PyLNP.user /home/Urist/bin/df/
+#+END_SRC
+
+
+**** Set up defaults
+Export the values needed for this container.
+
+Sections of this portion come from [[http://fabiorehm.com/blog/2014/09/11/running-gui-apps-with-docker/][this blog post]], as it covers the instructions that are needed to share your X11 socket with the docker container.
+
+#+NAME: setup-defaults
+#+BEGIN_SRC dockerfile
+ENV uid=1000 gid=1000
+
+RUN echo "Urist:x:${uid}:${gid}:Urist,,,:/home/Urist:/bin/bash" >> /etc/passwd && \
+    echo "Urist:x:${uid}:" >> /etc/group && \
+    echo "Urist ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/Urist && \
+    chmod 0440 /etc/sudoers.d/Urist && \
+    chown ${uid}:${gid} -R /home/Urist
+
+USER Urist
+ENV HOME /home/Urist
+
+CMD startlnp
+#+END_SRC
+
+*** Makefile
+
+The Makefile's basic structure is as follows:
+
+#+BEGIN_SRC makefile :tangle Makefile :noweb yes
+<<make-variables>>
+
+<<build-everything>>
+
+<<download-LNP>>
+
+<<download-DF>>
+#+END_SRC
+
+**** Define variables
+We're using the latest version of LNP, as of [2015-10-21 Wed]. Also, we're using the latest version of DF, as of [2015-10-22 Thu].
+
+#+NAME: make-variables
+#+BEGIN_SRC makefile
+lnp-URL=http://lazynewbpack.com/linux/04024/download/x64/04024r3-x64.zip
+lnp-zip=resources/install.zip
+df-URL=http://www.bay12games.com/dwarves/df_40_24_linux.tar.bz2
+df-zip=resource/df.tar.bz2
+image-name=tariqk/dwarf-fortress-lnp
+#+END_SRC
+
+**** Download the Lazy New Pack from the official website
+We're using the =-k= flag because I don't want to be stopped by any iffiness with regards to SSL certs. I know, it's a bad idea.
+
+#+NAME: download-LNP
+#+BEGIN_SRC makefile
+resources/install.zip:
+	curl -kL -o $(lnp-zip) $(lnp-URL)
+#+END_SRC
+
+**** Download the relevant Dwarf Fortress archive
+We're using the =-k= flag because I don't want to be stopped by any iffiness with regards to SSL certs. I know, it's a bad idea.
+
+#+NAME: download-DF
+#+BEGIN_SRC makefile
+resources/df.tar.bz2:
+	curl -kL -o $(df-zip) $(df-URL)
+#+END_SRC
+
+**** Finally, build everything
+Once that's done, we'll just have a go and build it, eh?
+
+#+NAME: build-everything
+#+BEGIN_SRC makefile
+all: | resources/install.zip resources/df.tar.bz2 resources/PyLNP.user start-df-lnp-docker
+	docker build -t $(image-name) .
+#+END_SRC
+
+*** Other files
+
+**** Setting files for PyLNP
+This settings file, which is included in the resources directory, resolves the following [[https://github.com/Lazy-Newb-Pack/Lazy-Newb-Pack-Linux/issues/7][issue]].
+
+Once this bug is closed, I'll update this.
+
+#+BEGIN_SRC json :tangle resources/PyLNP.user
+{
+    "terminal": "xterm -e", 
+    "tkgui_height": 643, 
+    "tkgui_width": 386
+}
+#+END_SRC
+
+**** The final executable
+This basically checks if an existing container of the current version exists, and if so, restart the container.
+
+#+BEGIN_SRC sh :tangle start-df-lnp-docker :shebang #!/bin/bash :noweb yes
+<<project-variables>>
+
+<<i-can-haz-container>>
+
+if [[ $? != 0 ]]; then
+    echo "docker ps failed with exit code $?."
+elif [[ $container_id ]]
+     echo "Container $container_id found. Restarting..."
+     <<restart-container>>
+else
+    echo "No container found. Attempting to find image..."
+    <<i-can-haz-image>>
+    if [[ $? != 0]]; then
+        echo "docker images failed with exit code $?."
+    elif [[ $image_id ]]
+         echo "Image $image_id found. Running..."
+         <<run-image>>
+    else
+        echo "Image not found. Container not found. Have you already run make yet?"
+#+END_SRC
+
+***** Set the project variables
+
+#+NAME: project-variables
+#+BEGIN_SRC sh
+PROJECT_NAME="df/lnp/docker"
+PROJECT_NAME_LABEL="net.bebudak.project_name"
+
+PROJECT_VERSION="0.0.0-alpha"
+PROJECT_VERSION_LABEL="net.bebudak.version"
+
+USER_ID=$(id -u)
+GROUP_ID=$(id -g)
+#+END_SRC
+
+***** Ask the question: is there a container?
+We do this by running the =docker ps= command, relying on the project name and version labels. We take the first entry, which, by rights, should be the newest container.
+
+#+NAME:i-can-haz-container
+#+BEGIN_SRC sh
+container_id=$(docker ps \
+                      --format "{{.ID}}" \
+                      --filter="label=$PROJECT_NAME_LABEL=$PROJECT_NAME" \
+                      --filter="label=$PROJECT_VERSION_LABEL=$PROJECT_VERSION" | \
+                      head -n1)
+#+END_SRC
+
+****** If there is, restart the docker container
+
+#+NAME:restart-container
+#+BEGIN_SRC sh
+docker restart container $container_id
+#+END_SRC
+
+***** Ask the question: is there an image?
+We do this by running the the =docker images= command, relying on the project name and version labels. We take the first entry, again, which, by rights, should be the newest image.
+
+#+NAME:i-can-haz-image
+#+BEGIN_SRC sh
+image_id=$(docker images \
+                  -q \
+                  --filter="label=$PROJECT_NAME_LABEL=$PROJECT_NAME" \
+                  --filter="label=$PROJECT_VERSION_LABEL=$PROJECT_VERSION" | \
+                  head -n1)
+#+END_SRC
+
+****** If there is, run the docker image
+I'm trying to figure out where I got the export =uid= and =gid= trick is from, and when I do I'll add the link.
+
+#+NAME:run-image
+#+BEGIN_SRC sh
+docker run -ti \
+       -e DISPLAY=$DISPLAY \
+       -e uid=$USER_ID \
+       -e gid=$GROUP_ID \
+       -v /tmp/.X11-unix:/tmp/.X11-unix \
+       $image_id
+#+END_SRC

@@ -1,0 +1,40 @@
+#!/bin/bash
+PROJECT_NAME="df/lnp/docker"
+PROJECT_NAME_LABEL="net.bebudak.project_name"
+
+PROJECT_VERSION="0.0.0-alpha"
+PROJECT_VERSION_LABEL="net.bebudak.version"
+
+USER_ID=$(id -u)
+GROUP_ID=$(id -g)
+
+container_id=$(docker ps \
+                      --format "{{.ID}}" \
+                      --filter="label=$PROJECT_NAME_LABEL=$PROJECT_NAME" \
+                      --filter="label=$PROJECT_VERSION_LABEL=$PROJECT_VERSION" | \
+                      head -n1)
+
+if [[ $? != 0 ]]; then
+    echo "docker ps failed with exit code $?."
+elif [[ $container_id ]]
+     echo "Container $container_id found. Restarting..."
+     docker restart container $container_id
+else
+    echo "No container found. Attempting to find image..."
+    image_id=$(docker images \
+                      -q \
+                      --filter="label=$PROJECT_NAME_LABEL=$PROJECT_NAME" \
+                      --filter="label=$PROJECT_VERSION_LABEL=$PROJECT_VERSION" | \
+                      head -n1)
+    if [[ $? != 0]]; then
+        echo "docker images failed with exit code $?."
+    elif [[ $image_id ]]
+         echo "Image $image_id found. Running..."
+         docker run -ti \
+                -e DISPLAY=$DISPLAY \
+                -e uid=$USER_ID \
+                -e gid=$GROUP_ID \
+                -v /tmp/.X11-unix:/tmp/.X11-unix \
+                $image_id
+    else
+        echo "Image not found. Container not found. Have you already run make yet?"
