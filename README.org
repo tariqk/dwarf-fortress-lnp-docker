@@ -11,13 +11,13 @@ Current setup is for DF v0.40.24 (x64 LNP). As stated by the LNP Linux page:
 If you are using a x64 bit system then you should download the x64 PyLNP interface, and 32 bit should download i686 PyLNP interface
 #+END_QUOTE
 
-This setup needs to be tested on Debian Jessie, but should work on any system with Docker for Linux installed.
+This has been tested on Debian Jessie, but should work on any system with Docker for Linux installed. [[https://github.com/tariqk/dwarf-fortress-lnp-docker/issues/new][Let me know if this isn't the case]].
 
 * Rationale
 
 As stated in the [[http://www.bay12forums.com/smf/index.php?topic=140966.0][forum posting]], this LNP has been tested only on Ubuntu 14.04, on a fresh install. I'm not using Ubuntu — while I /am/ using Debian, I've noticed enough differences between both distros to realize that this sort of thing is a /pain in the ass/ to deal with.
 
-Then I discovered Docker, and I noticed [[https://github.com/pgrange/docker-dwarf_fortress_lnp][other projects]] using Docker to run LNP. Some even managed to do it so that they end up [[http://fabiorehm.com/blog/2014/09/11/running-gui-apps-with-docker/][running GUI apps with Docker]]. 
+Then I discovered Docker, and I noticed [[https://github.com/pgrange/docker-dwarf_fortress_lnp][other projects]] using Docker to run LNP. Some even managed to do it so that they end up [[http://fabiorehm.com/blog/2014/09/11/running-gui-apps-with-docker/][running GUI apps with Docker]] ([[https://blog.jessfraz.com/post/docker-containers-on-the-desktop/][the original idea]] came from one of Docker's software engineers, and they've got [[https://github.com/jfrazelle/dockerfiles][a repo full of Dockerfiles for reference]]).
 
 Which is neat. I wanted to do that.
 
@@ -35,13 +35,15 @@ Once that's done, try and run =start-df-lnp-docker= and see if that works.
 
 ** How this works
 
-Basically, so anyway, ther:
+There are several files that are available here:
 
-1. =Makefile=, downloads the required ZIP files and creates the Docker image.
-2. =Dockerfile=, which tells Docker how to create and setup the image.
+1. =Makefile=, which downloads the required ZIP files and creates the Docker image.
+2. =Dockerfile=, tells Docker how to create and setup the image.
+3. =resources/PyLNP.user=, which resolves [[https://github.com/Lazy-Newb-Pack/Lazy-Newb-Pack-Linux/issues/7][this problem]].
+4. =start-df-lnp-docker=, which either runs or restarts the Docker image containing the LNP.
 
 *** Dockerfile
-m
+
 The Dockerfile's basic structure is as follows:
 
 #+NAME: Dockerfile
@@ -65,7 +67,6 @@ FROM ubuntu:14.04
 MAINTAINER Tariq Kamal <github.t-boy@xoxy.net>
 
 LABEL vendor="Tariq Kamal" \
-      net.bebudak.version.is_alpha \
       net.bebudak.version="0.0.0-alpha" \
       net.bebudak.release_date="2015-10-19" \
       net.bebudak.project_name="df/lnp/docker"
@@ -91,7 +92,6 @@ Set up the locales, the installation environment, and basically everything.
 <<preamble>>
 
 <<lnp-unzip>>
-<<df-tar-bz2>>
 <<lnp-config>>
 #+END_SRC
 
@@ -112,10 +112,11 @@ Copy the LNP zip file (which should exist, since =Makefile= should guarantee it)
 
 #+NAME: lnp-unzip
 #+BEGIN_SRC dockerfile
-COPY resources/install.zip .
+COPY resources/install.zip /home/Urist/bin/df/
 RUN unzip install.zip -d . && \
     mv 04024r3-x64/* . && \
-    rm install.zip
+    rm install.zip \
+    rm -rf 04024r3-x64
 #+END_SRC
 
 ***** Bring in the DF =tar.bz2= file.
@@ -123,17 +124,17 @@ Interestingly enough, I discovered that =ADD= in docker allows Docker to untar t
 
 #+NAME: df-tar-bz2
 #+BEGIN_SRC dockerfile
-ADD resources/df.tar.bz2 .
+ADD resources/df.tar.bz2 /home/Urist/bin/df/
 #+END_SRC
 
 ***** Copy the LNP configuration file
+
 Once all of that's done, copy the configuration file needed to resolve the bug with LNP and =xdlg-terminal=.
+
 #+NAME: lnp-config
 #+BEGIN_SRC dockerfile
 COPY resources/PyLNP.user /home/Urist/bin/df/
 #+END_SRC
-
-
 **** Set up defaults
 Export the values needed for this container.
 
@@ -152,7 +153,7 @@ RUN echo "Urist:x:${uid}:${gid}:Urist,,,:/home/Urist:/bin/bash" >> /etc/passwd &
 USER Urist
 ENV HOME /home/Urist
 
-CMD startlnp
+CMD /home/Urist/bin/df/startlnp
 #+END_SRC
 
 *** Makefile
@@ -167,17 +168,19 @@ The Makefile's basic structure is as follows:
 <<download-LNP>>
 
 <<download-DF>>
+
+<<cleanup>>
 #+END_SRC
 
 **** Define variables
-We're using the latest version of LNP, as of [2015-10-21 Wed]. Also, we're using the latest version of DF, as of [2015-10-22 Thu].
+We're using the latest version of LNP, as of [2015-10-22 Thu]. Also, we're using the latest version of DF, as of [2015-10-22 Thu].
 
 #+NAME: make-variables
 #+BEGIN_SRC makefile
-lnp-URL=http://lazynewbpack.com/linux/04024/download/x64/04024r3-x64.zip
+lnp-URL=http://dffd.bay12games.com/download.php?id=8936&f=04024r3-x64.zip
 lnp-zip=resources/install.zip
 df-URL=http://www.bay12games.com/dwarves/df_40_24_linux.tar.bz2
-df-zip=resource/df.tar.bz2
+df-zip=resources/df.tar.bz2
 image-name=tariqk/dwarf-fortress-lnp
 #+END_SRC
 
@@ -207,6 +210,15 @@ Once that's done, we'll just have a go and build it, eh?
 all: | resources/install.zip resources/df.tar.bz2 resources/PyLNP.user start-df-lnp-docker
 	docker build -t $(image-name) .
 #+END_SRC
+
+**** Clean everything up
+#+NAME: cleanup
+#+BEGIN_SRC makefile
+.PHONY: clean
+clean:
+	rm resources/install.zip resources/df.tar.bz2
+#+END_SRC
+
 
 *** Other files
 
@@ -270,9 +282,10 @@ We do this by running the =docker ps= command, relying on the project name and v
 #+NAME:i-can-haz-container
 #+BEGIN_SRC sh
 container_id=$(docker ps \
+                      --all \
                       --format "{{.ID}}" \
-                      --filter="label=$PROJECT_NAME_LABEL=$PROJECT_NAME" \
-                      --filter="label=$PROJECT_VERSION_LABEL=$PROJECT_VERSION" | \
+                      --filter=label=$PROJECT_NAME_LABEL=$PROJECT_NAME \
+                      --filter=label=$PROJECT_VERSION_LABEL=$PROJECT_VERSION | \
                       head -n1)
 #+END_SRC
 
@@ -307,3 +320,9 @@ docker run -ti \
        -v /tmp/.X11-unix:/tmp/.X11-unix \
        $image_id
 #+END_SRC
+
+* Behind the scenes
+
+Yep, this is literally the org-file that generates most of the other files necessary for this, using =org-mode= on Emacs.
+
+After making changes in this document, I run =org-babel-tangle= and update all the other files.

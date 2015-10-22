@@ -3,7 +3,6 @@ FROM ubuntu:14.04
 MAINTAINER Tariq Kamal <github.t-boy@xoxy.net>
 
 LABEL vendor="Tariq Kamal" \
-      net.bebudak.version.is_alpha \
       net.bebudak.version="0.0.0-alpha" \
       net.bebudak.release_date="2015-10-19" \
       net.bebudak.project_name="df/lnp/docker"
@@ -18,11 +17,11 @@ RUN locale-gen en_US.UTF-8
 RUN mkdir -p /home/Urist/bin/df
 WORKDIR /home/Urist/bin/df
 
-COPY resources/install.zip .
+COPY resources/install.zip /home/Urist/bin/df/
 RUN unzip install.zip -d . && \
     mv 04024r3-x64/* . && \
-    rm install.zip
-ADD resources/df.tar.bz2 .
+    rm install.zip \
+    rm -rf 04024r3-x64
 COPY resources/PyLNP.user /home/Urist/bin/df/
 
 ENV uid=1000 gid=1000
@@ -36,4 +35,4 @@ RUN echo "Urist:x:${uid}:${gid}:Urist,,,:/home/Urist:/bin/bash" >> /etc/passwd &
 USER Urist
 ENV HOME /home/Urist
 
-CMD startlnp
+CMD /home/Urist/bin/df/startlnp

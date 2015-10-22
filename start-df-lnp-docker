@@ -9,9 +9,10 @@ USER_ID=$(id -u)
 GROUP_ID=$(id -g)
 
 container_id=$(docker ps \
+                      --all \
                       --format "{{.ID}}" \
-                      --filter="label=$PROJECT_NAME_LABEL=$PROJECT_NAME" \
-                      --filter="label=$PROJECT_VERSION_LABEL=$PROJECT_VERSION" | \
+                      --filter=label=$PROJECT_NAME_LABEL=$PROJECT_NAME \
+                      --filter=label=$PROJECT_VERSION_LABEL=$PROJECT_VERSION | \
                       head -n1)
 
 if [[ $? != 0 ]]; then
