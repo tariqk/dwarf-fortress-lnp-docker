@@ -233,19 +233,21 @@ This basically checks if an existing container of the current version exists, an
 
 if [[ $? != 0 ]]; then
     echo "docker ps failed with exit code $?."
-elif [[ $container_id ]]
+elif [[ $container_id ]]; then
      echo "Container $container_id found. Restarting..."
      <<restart-container>>
 else
     echo "No container found. Attempting to find image..."
     <<i-can-haz-image>>
-    if [[ $? != 0]]; then
+    if [[ $? != 0 ]]; then
         echo "docker images failed with exit code $?."
-    elif [[ $image_id ]]
+    elif [[ $image_id ]]; then
          echo "Image $image_id found. Running..."
          <<run-image>>
     else
         echo "Image not found. Container not found. Have you already run make yet?"
+    fi
+fi
 #+END_SRC
 
 ***** Set the project variables

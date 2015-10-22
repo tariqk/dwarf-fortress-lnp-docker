@@ -16,7 +16,7 @@ container_id=$(docker ps \
 
 if [[ $? != 0 ]]; then
     echo "docker ps failed with exit code $?."
-elif [[ $container_id ]]
+elif [[ $container_id ]]; then
      echo "Container $container_id found. Restarting..."
      docker restart container $container_id
 else
@@ -26,9 +26,9 @@ else
                       --filter="label=$PROJECT_NAME_LABEL=$PROJECT_NAME" \
                       --filter="label=$PROJECT_VERSION_LABEL=$PROJECT_VERSION" | \
                       head -n1)
-    if [[ $? != 0]]; then
+    if [[ $? != 0 ]]; then
         echo "docker images failed with exit code $?."
-    elif [[ $image_id ]]
+    elif [[ $image_id ]]; then
          echo "Image $image_id found. Running..."
          docker run -ti \
                 -e DISPLAY=$DISPLAY \
@@ -38,3 +38,5 @@ else
                 $image_id
     else
         echo "Image not found. Container not found. Have you already run make yet?"
+    fi
+fi
