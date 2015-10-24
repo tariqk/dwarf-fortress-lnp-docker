@@ -111,16 +111,29 @@ WORKDIR /home/Urist/bin/df
 Copy the LNP zip file (which should exist, since =Makefile= should guarantee it) into the container, unzip, and then clean up.
 
 #+NAME: lnp-unzip
-#+BEGIN_SRC dockerfile
+#+BEGIN_SRC dockerfile :noweb yes
 COPY resources/install.zip /home/Urist/bin/df/
 RUN unzip install.zip -d . && \
     mv 04024r3-x64/* . && \
-    rm install.zip \
-    rm -rf 04024r3-x64
+    rm install.zip && \
+    rm -rf 04024r3-x64 && \
+    <<bugfix-permissions>>
 #+END_SRC
 
-***** Bring in the DF =tar.bz2= file.
+****** Bugfix for wonky permissions
+
+The command is to resolve [[https://github.com/tariqk/dwarf-fortress-lnp-docker/issues/1][this issue]], which is a problem with permissions with some directories within install.zip, as seen [[https://github.com/tariqk/dwarf-fortress-lnp-docker/issues/1#issuecomment-150785017][here]]:
+
+#+NAME:bugfix-permissions
+#+BEGIN_SRC dockerfile
+find /home/Urist/bin/df/ -type d -exec chmod +rx {} \;
+#+END_SRC
+
+
+***** TODO Bring in the DF =tar.bz2= file.
 Interestingly enough, I discovered that =ADD= in docker allows Docker to untar the archive automatically in the system. So this is really just one line.
+
+This block is no longer active, as I've realized that not only does a copy of DF already exist in =install.zip=, it must be installed in a certain format [[https://github.com/Lazy-Newb-Pack/Lazy-Newb-Pack-Linux/issues/1#issuecomment-89886208][as referenced here]]. Until we or someone else fixes that, we're leaving this stub here, and a placing it under TODO.
 
 #+NAME: df-tar-bz2
 #+BEGIN_SRC dockerfile
@@ -177,7 +190,7 @@ We're using the latest version of LNP, as of [2015-10-22 Thu]. Also, we're using
 
 #+NAME: make-variables
 #+BEGIN_SRC makefile
-lnp-URL=http://dffd.bay12games.com/download.php?id=8936&f=04024r3-x64.zip
+lnp-URL=http://lazynewbpack.com/linux/04024/download/x64/04024r3-x64.zip
 lnp-zip=resources/install.zip
 df-URL=http://www.bay12games.com/dwarves/df_40_24_linux.tar.bz2
 df-zip=resources/df.tar.bz2

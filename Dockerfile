@@ -20,8 +20,9 @@ WORKDIR /home/Urist/bin/df
 COPY resources/install.zip /home/Urist/bin/df/
 RUN unzip install.zip -d . && \
     mv 04024r3-x64/* . && \
-    rm install.zip \
-    rm -rf 04024r3-x64
+    rm install.zip && \
+    rm -rf 04024r3-x64 && \
+    find /home/Urist/bin/df/ -type d -exec chmod +rx {} \;
 COPY resources/PyLNP.user /home/Urist/bin/df/
 
 ENV uid=1000 gid=1000
