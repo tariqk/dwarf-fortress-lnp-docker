@@ -11,8 +11,8 @@ GROUP_ID=$(id -g)
 container_id=$(docker ps \
                       --all \
                       --format "{{.ID}}" \
-                      --filter=label=$PROJECT_NAME_LABEL=$PROJECT_NAME \
-                      --filter=label=$PROJECT_VERSION_LABEL=$PROJECT_VERSION | \
+                      --filter="label=$PROJECT_NAME_LABEL=$PROJECT_NAME" \
+                      --filter="label=$PROJECT_VERSION_LABEL=$PROJECT_VERSION" | \
                       head -n1)
 
 if [[ $? != 0 ]]; then
@@ -36,6 +36,8 @@ else
                 -e uid=$USER_ID \
                 -e gid=$GROUP_ID \
                 -v /tmp/.X11-unix:/tmp/.X11-unix \
+                -l $PROJECT_NAME_LABEL=$PROJECT_NAME \
+                -l $PROJECT_VERSION_LABEL=$PROJECT_VERSION \
                 $image_id
     else
         echo "Image not found. Container not found. Have you already run make yet?"
