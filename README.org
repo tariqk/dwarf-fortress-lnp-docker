@@ -306,7 +306,7 @@ container_id=$(docker ps \
 
 #+NAME:restart-container
 #+BEGIN_SRC sh
-docker restart container $container_id
+docker restart $container_id
 #+END_SRC
 
 ***** Ask the question: is there an image?

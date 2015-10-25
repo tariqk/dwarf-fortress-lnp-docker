@@ -19,7 +19,7 @@ if [[ $? != 0 ]]; then
     echo "docker ps failed with exit code $?."
 elif [[ $container_id ]]; then
      echo "Container $container_id found. Restarting..."
-     docker restart container $container_id
+     docker restart $container_id
 else
     echo "No container found. Attempting to find image..."
     image_id=$(docker images \
