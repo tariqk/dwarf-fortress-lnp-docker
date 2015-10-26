@@ -338,6 +338,12 @@ docker run -ti \
 
 * Behind the scenes
 
-Yep, this is literally the org-file that generates most of the other files necessary for this, using =org-mode= on Emacs.
+Yep, this is the org-file that generates most of the other files necessary for this, using =org-mode= on Emacs.
 
 After making changes in this document, I run =org-babel-tangle= and update all the other files.
+
+This file also sets up local variables (using =add-file-local-variable=) to ensure that =org-src-preserve-indentation= is set to =t=. This ensures that the Makefile is properly created, preserving the =TAB= used to define actions to specific rules.
+
+# Local Variables:
+# org-src-preserve-indentation: t
+# End:
