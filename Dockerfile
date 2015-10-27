@@ -3,8 +3,8 @@ FROM ubuntu:14.04
 MAINTAINER Tariq Kamal <github.t-boy@xoxy.net>
 
 LABEL vendor="Tariq Kamal" \
-      net.bebudak.version="0.0.0-alpha" \
-      net.bebudak.release_date="2015-10-19" \
+      net.bebudak.version="0.0.1-alpha" \
+      net.bebudak.release_date="2015-10-27" \
       net.bebudak.project_name="df/lnp/docker"
 
 RUN dpkg --add-architecture i386 && \
@@ -16,14 +16,6 @@ RUN locale-gen en_US.UTF-8
 
 RUN mkdir -p /home/Urist/bin/df
 WORKDIR /home/Urist/bin/df
-
-COPY resources/install.zip /home/Urist/bin/df/
-RUN unzip install.zip -d . && \
-    mv 04024r3-x64/* . && \
-    rm install.zip && \
-    rm -rf 04024r3-x64 && \
-    find /home/Urist/bin/df/ -type d -exec chmod +rx {} \;
-COPY resources/PyLNP.user /home/Urist/bin/df/
 
 ENV uid=1000 gid=1000
 

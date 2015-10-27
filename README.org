@@ -67,8 +67,8 @@ FROM ubuntu:14.04
 MAINTAINER Tariq Kamal <github.t-boy@xoxy.net>
 
 LABEL vendor="Tariq Kamal" \
-      net.bebudak.version="0.0.0-alpha" \
-      net.bebudak.release_date="2015-10-19" \
+      net.bebudak.version="0.0.1-alpha" \
+      net.bebudak.release_date="2015-10-27" \
       net.bebudak.project_name="df/lnp/docker"
 #+END_SRC
 
@@ -85,20 +85,11 @@ RUN dpkg --add-architecture i386 && \
 This one will take /quite/ a long while.
 
 **** Prepare Environment
-Set up the locales, the installation environment, and basically everything.
+Set up the locales. We can only bring in the installation environment during the run command, so we'll only do it then.
 
-#+NAME: prepare-environment
-#+BEGIN_SRC dockerfile :noweb yes
-<<preamble>>
-
-<<lnp-unzip>>
-<<lnp-config>>
-#+END_SRC
-
-***** The preamble
 Essentially, set up the staging area — in this case, =/home/Urist/bin/df=, and ensure that the locales are set properly.
 
-#+NAME: preamble
+#+NAME: prepare-environment
 #+BEGIN_SRC dockerfile
 ENV LANG en_US.UTF-8
 RUN locale-gen en_US.UTF-8
@@ -107,47 +98,6 @@ RUN mkdir -p /home/Urist/bin/df
 WORKDIR /home/Urist/bin/df
 #+END_SRC
 
-***** Bring in the LNP zip file.
-Copy the LNP zip file (which should exist, since =Makefile= should guarantee it) into the container, unzip, and then clean up.
-
-#+NAME: lnp-unzip
-#+BEGIN_SRC dockerfile :noweb yes
-COPY resources/install.zip /home/Urist/bin/df/
-RUN unzip install.zip -d . && \
-    mv 04024r3-x64/* . && \
-    rm install.zip && \
-    rm -rf 04024r3-x64 && \
-    <<bugfix-permissions>>
-#+END_SRC
-
-****** Bugfix for wonky permissions
-
-The command is to resolve [[https://github.com/tariqk/dwarf-fortress-lnp-docker/issues/1][this issue]], which is a problem with permissions with some directories within install.zip, as seen [[https://github.com/tariqk/dwarf-fortress-lnp-docker/issues/1#issuecomment-150785017][here]]:
-
-#+NAME:bugfix-permissions
-#+BEGIN_SRC dockerfile
-find /home/Urist/bin/df/ -type d -exec chmod +rx {} \;
-#+END_SRC
-
-
-***** TODO Bring in the DF =tar.bz2= file.
-Interestingly enough, I discovered that =ADD= in docker allows Docker to untar the archive automatically in the system. So this is really just one line.
-
-This block is no longer active, as I've realized that not only does a copy of DF already exist in =install.zip=, it must be installed in a certain format [[https://github.com/Lazy-Newb-Pack/Lazy-Newb-Pack-Linux/issues/1#issuecomment-89886208][as referenced here]]. Until we or someone else fixes that, we're leaving this stub here, and a placing it under TODO.
-
-#+NAME: df-tar-bz2
-#+BEGIN_SRC dockerfile
-ADD resources/df.tar.bz2 /home/Urist/bin/df/
-#+END_SRC
-
-***** Copy the LNP configuration file
-
-Once all of that's done, copy the configuration file needed to resolve the bug with LNP and =xdlg-terminal=.
-
-#+NAME: lnp-config
-#+BEGIN_SRC dockerfile
-COPY resources/PyLNP.user /home/Urist/bin/df/
-#+END_SRC
 **** Set up defaults
 Export the values needed for this container.
 
@@ -180,8 +130,6 @@ The Makefile's basic structure is as follows:
 
 <<download-LNP>>
 
-<<download-DF>>
-
 <<cleanup>>
 #+END_SRC
 
@@ -192,27 +140,18 @@ We're using the latest version of LNP, as of [2015-10-22 Thu]. Also, we're using
 #+BEGIN_SRC makefile
 lnp-URL=http://lazynewbpack.com/linux/04024/download/x64/04024r3-x64.zip
 lnp-zip=resources/install.zip
-df-URL=http://www.bay12games.com/dwarves/df_40_24_linux.tar.bz2
-df-zip=resources/df.tar.bz2
 image-name=tariqk/dwarf-fortress-lnp
 #+END_SRC
 
 **** Download the Lazy New Pack from the official website
-We're using the =-k= flag because I don't want to be stopped by any iffiness with regards to SSL certs. I know, it's a bad idea.
+We're using the =-k= flag because I don't want to be stopped by any iffiness with regards to SSL certs. After that, unzip it to the working directory and rename the directory properly.
 
 #+NAME: download-LNP
 #+BEGIN_SRC makefile
 resources/install.zip:
-	curl -kL -o $(lnp-zip) $(lnp-URL)
-#+END_SRC
-
-**** Download the relevant Dwarf Fortress archive
-We're using the =-k= flag because I don't want to be stopped by any iffiness with regards to SSL certs. I know, it's a bad idea.
-
-#+NAME: download-DF
-#+BEGIN_SRC makefile
-resources/df.tar.bz2:
-	curl -kL -o $(df-zip) $(df-URL)
+	curl -kL -o $$(lnp-zip) $$(lnp-URL) ;\
+	unzip $$(lnp-zip) -d . ;\
+	mv 04024r3-x64 df
 #+END_SRC
 
 **** Finally, build everything
@@ -229,7 +168,7 @@ all: | resources/install.zip resources/df.tar.bz2 resources/PyLNP.user start-df-
 #+BEGIN_SRC makefile
 .PHONY: clean
 clean:
-	rm resources/install.zip resources/df.tar.bz2
+	rm -rf resources/install.zip df
 #+END_SRC
 
 
@@ -282,11 +221,12 @@ fi
 PROJECT_NAME="df/lnp/docker"
 PROJECT_NAME_LABEL="net.bebudak.project_name"
 
-PROJECT_VERSION="0.0.0-alpha"
+PROJECT_VERSION="0.0.1-alpha"
 PROJECT_VERSION_LABEL="net.bebudak.version"
 
 USER_ID=$(id -u)
 GROUP_ID=$(id -g)
+WORK_DIR=$(pwd)
 #+END_SRC
 
 ***** Ask the question: is there a container?
@@ -331,6 +271,8 @@ docker run -ti \
        -e uid=$USER_ID \
        -e gid=$GROUP_ID \
        -v /tmp/.X11-unix:/tmp/.X11-unix \
+       -v $WORK_DIR/df:/home/Urist/bin/df \
+       -v $WORK_DIR/resources/PyLNP.user:/home/Urist/bin/df/PyLNP.user \
        -l $PROJECT_NAME_LABEL=$PROJECT_NAME \
        -l $PROJECT_VERSION_LABEL=$PROJECT_VERSION \
        $image_id
