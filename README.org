@@ -28,10 +28,14 @@ First, follow the instructions for [[https://docs.docker.com/linux/started/][ins
 Clone this repository, or even download the ZIP file, and then run the following command:
 
 #+BEGIN_SRC sh :tangle no
-make
+$ make
 #+END_SRC
 
-Once that's done, try and run =start-df-lnp-docker= and see if that works.
+Once that's done, at the directory, run and it should work.
+
+#+BEGIN_SRC sh :tangle no
+$ ./start-df-lnp-docker
+#+END_SRC
 
 ** How this works
 
@@ -68,7 +72,7 @@ MAINTAINER Tariq Kamal <github.t-boy@xoxy.net>
 
 LABEL vendor="Tariq Kamal" \
       net.bebudak.version="0.0.1-alpha" \
-      net.bebudak.release_date="2015-10-27" \
+      net.bebudak.release_date="2015-10-28" \
       net.bebudak.project_name="df/lnp/docker"
 #+END_SRC
 
@@ -82,7 +86,7 @@ RUN dpkg --add-architecture i386 && \
     apt-get install -y default-jre libsdl1.2debian:i386 libsdl-image1.2:i386 libsdl-ttf2.0-0:i386 libglu1-mesa:i386 libgtk2.0-0:i386  libopenal1:i386 libjpeg62:i386 coreutils g++ gcc patch xterm sed  python bzip2 qtchooser qtbase5-dev qtbase5-dev-tools qtscript5-dev qt5-qmake libqt5script5 libqt5scripttools5 libqxt-core0 libqxt-gui0 wget unzip locales
 #+END_SRC
 
-This one will take /quite/ a long while.
+The download for this, disappointingly, will take a /long/ time, and will bloat the image to approximately around 800 MB.
 
 **** Prepare Environment
 Set up the locales. We can only bring in the installation environment during the run command, so we'll only do it then.
@@ -134,7 +138,7 @@ The Makefile's basic structure is as follows:
 #+END_SRC
 
 **** Define variables
-We're using the latest version of LNP, as of [2015-10-22 Thu]. Also, we're using the latest version of DF, as of [2015-10-22 Thu].
+We're using the latest version of LNP, as of [2015-10-22 Thu]. Also, we're using the latest version of DF, as of [2015-10-22 Thu]. These will be downloaded every =make=.
 
 #+NAME: make-variables
 #+BEGIN_SRC makefile
@@ -144,14 +148,17 @@ image-name=tariqk/dwarf-fortress-lnp
 #+END_SRC
 
 **** Download the Lazy New Pack from the official website
-We're using the =-k= flag because I don't want to be stopped by any iffiness with regards to SSL certs. After that, unzip it to the working directory and rename the directory properly.
+We're using the =-k= flag because I don't want to be stopped by any iffiness with regards to SSL certs. After that, unzip it to the working directory and rename the directory accordingly.
 
 #+NAME: download-LNP
 #+BEGIN_SRC makefile
 resources/install.zip:
-	curl -kL -o $$(lnp-zip) $$(lnp-URL) ;\
-	unzip $$(lnp-zip) -d . ;\
+	curl -kL -o $(lnp-zip) $(lnp-URL)
+
+df:
+	unzip $(lnp-zip) -d . && \
 	mv 04024r3-x64 df
+
 #+END_SRC
 
 **** Finally, build everything
@@ -159,7 +166,7 @@ Once that's done, we'll just have a go and build it, eh?
 
 #+NAME: build-everything
 #+BEGIN_SRC makefile
-all: | resources/install.zip resources/df.tar.bz2 resources/PyLNP.user start-df-lnp-docker
+all: | resources/install.zip resources/PyLNP.user start-df-lnp-docker df
 	docker build -t $(image-name) .
 #+END_SRC
 
@@ -189,6 +196,8 @@ Once this bug is closed, I'll update this.
 
 **** The final executable
 This basically checks if an existing container of the current version exists, and if so, restart the container.
+
+Right now, if the =./df= folder is missing, I do think this will choke out.
 
 #+BEGIN_SRC sh :tangle start-df-lnp-docker :shebang #!/bin/bash :noweb yes
 <<project-variables>>
