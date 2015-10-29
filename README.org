@@ -13,6 +13,11 @@ If you are using a x64 bit system then you should download the x64 PyLNP interfa
 
 This has been tested on Debian Jessie, but should work on any system with Docker for Linux installed. [[https://github.com/tariqk/dwarf-fortress-lnp-docker/issues/new][Let me know if this isn't the case]].
 
+* Modifying this setup
+This document and repository, excluding the following sections, are licensed under the MIT license, as stated in the [[file:LICENSE][LICENSE file]]:
+
+- Code that generates =PyLNP.user= (the PyLNP.user file has been removed from [[https://github.com/tariqk/dwarf-fortress-lnp-docker/commit/4e39f8191bbaadf7ca76831bd3bd2ac80a8adcd9][this commit]]).
+
 * Rationale
 
 As stated in the [[http://www.bay12forums.com/smf/index.php?topic=140966.0][forum posting]], this LNP has been tested only on Ubuntu 14.04, on a fresh install. I'm not using Ubuntu — while I /am/ using Debian, I've noticed enough differences between both distros to realize that this sort of thing is a /pain in the ass/ to deal with.
