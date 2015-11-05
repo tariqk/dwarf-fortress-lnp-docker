@@ -43,8 +43,7 @@ There are several files that are available here:
 
 1. =Makefile=, which downloads the required ZIP files and creates the Docker image.
 2. =Dockerfile=, tells Docker how to create and setup the image.
-3. =resources/PyLNP.user=, which resolves [[https://github.com/Lazy-Newb-Pack/Lazy-Newb-Pack-Linux/issues/7][this problem]].
-4. =start-df-lnp-docker=, which either runs or restarts the Docker image containing the LNP.
+3. =start-df-lnp-docker=, which either runs or restarts the Docker image containing the LNP.
 
 *** Dockerfile
 
@@ -71,8 +70,8 @@ FROM ubuntu:14.04
 MAINTAINER Tariq Kamal <github.t-boy@xoxy.net>
 
 LABEL vendor="Tariq Kamal" \
-      net.bebudak.version="0.0.1-alpha" \
-      net.bebudak.release_date="2015-10-28" \
+      net.bebudak.version="0.0.2-alpha" \
+      net.bebudak.release_date="2015-11-05" \
       net.bebudak.project_name="df/lnp/docker"
 #+END_SRC
 
@@ -230,7 +229,7 @@ fi
 PROJECT_NAME="df/lnp/docker"
 PROJECT_NAME_LABEL="net.bebudak.project_name"
 
-PROJECT_VERSION="0.0.1-alpha"
+PROJECT_VERSION="0.0.2-alpha"
 PROJECT_VERSION_LABEL="net.bebudak.version"
 
 USER_ID=$(id -u)

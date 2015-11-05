@@ -3,8 +3,8 @@ FROM ubuntu:14.04
 MAINTAINER Tariq Kamal <github.t-boy@xoxy.net>
 
 LABEL vendor="Tariq Kamal" \
-      net.bebudak.version="0.0.1-alpha" \
-      net.bebudak.release_date="2015-10-28" \
+      net.bebudak.version="0.0.2-alpha" \
+      net.bebudak.release_date="2015-11-05" \
       net.bebudak.project_name="df/lnp/docker"
 
 RUN dpkg --add-architecture i386 && \

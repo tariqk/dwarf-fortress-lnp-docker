@@ -2,7 +2,7 @@
 PROJECT_NAME="df/lnp/docker"
 PROJECT_NAME_LABEL="net.bebudak.project_name"
 
-PROJECT_VERSION="0.0.1-alpha"
+PROJECT_VERSION="0.0.2-alpha"
 PROJECT_VERSION_LABEL="net.bebudak.version"
 
 USER_ID=$(id -u)
