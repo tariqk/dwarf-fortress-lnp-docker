@@ -1,4 +1,4 @@
-FROM ubuntu:14.04
+FROM ubuntu:latest
 
 MAINTAINER Tariq Kamal <github.t-boy@xoxy.net>
 

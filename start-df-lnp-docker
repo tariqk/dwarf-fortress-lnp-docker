@@ -38,7 +38,6 @@ else
                 -e gid=$GROUP_ID \
                 -v /tmp/.X11-unix:/tmp/.X11-unix \
                 -v $WORK_DIR/df:/home/Urist/bin/df \
-                -v $WORK_DIR/resources/PyLNP.user:/home/Urist/bin/df/PyLNP.user \
                 -l $PROJECT_NAME_LABEL=$PROJECT_NAME \
                 -l $PROJECT_VERSION_LABEL=$PROJECT_VERSION \
                 $image_id

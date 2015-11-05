@@ -21,6 +21,35 @@ Then I discovered Docker, and I noticed [[https://github.com/pgrange/docker-dwar
 
 Which is neat. I wanted to do that.
 
+* Modifying this setup
+
+This document and repository are licensed under the MIT license:
+
+#+BEGIN_SRC fundamental :tangle LICENSE
+The MIT License (MIT)
+
+Copyright (c) 2015 Tariq Kamal
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+#+END_SRC
+
+
 * How to use
 
 First, follow the instructions for [[https://docs.docker.com/linux/started/][installing Docker for Linux]]. Once you're able to run both =hello-world= and =whalesay=, you should be able to install this.
@@ -65,7 +94,7 @@ Firstly, begin by defining the docker image's meta-data and it's base image:
 
 #+NAME: metadata
 #+BEGIN_SRC dockerfile
-FROM ubuntu:14.04
+FROM ubuntu:latest
 
 MAINTAINER Tariq Kamal <github.t-boy@xoxy.net>
 
@@ -144,6 +173,8 @@ We're using the latest version of LNP, as of [2015-10-22 Thu]. Also, we're using
 lnp-URL=http://lazynewbpack.com/linux/04024/download/x64/04024r3-x64.zip
 lnp-zip=resources/install.zip
 image-name=tariqk/dwarf-fortress-lnp
+xdg-terminal-location=df/xdg-terminal
+xdg-terminal-URL=https://raw.githubusercontent.com/Lazy-Newb-Pack/Lazy-Newb-Pack-Linux/master/pack/xdg-terminal
 #+END_SRC
 
 **** Download the Lazy New Pack from the official website
@@ -154,10 +185,13 @@ We're using the =-k= flag because I don't want to be stopped by any iffiness wit
 resources/install.zip:
 	curl -kL -o $(lnp-zip) $(lnp-URL)
 
-df:
+df: | resources/install.zip
 	unzip $(lnp-zip) -d . && \
-	mv 04024r3-x64 df
+	mv 04024r3-x64 df && \
+	rm df/xdg-terminal
 
+df/xdg-terminal: | df
+	curl -kL -o $(xdg-terminal-location) $(xdg-terminal-URL)
 #+END_SRC
 
 **** Finally, build everything
@@ -165,7 +199,7 @@ Once that's done, we'll just have a go and build it, eh?
 
 #+NAME: build-everything
 #+BEGIN_SRC makefile
-all: | resources/install.zip resources/PyLNP.user start-df-lnp-docker df
+all: | start-df-lnp-docker df df/xdg-terminal
 	docker build -t $(image-name) .
 #+END_SRC
 
@@ -179,19 +213,6 @@ clean:
 
 
 *** Other files
-
-**** Setting files for PyLNP
-This settings file, which is included in the resources directory, resolves the following [[https://github.com/Lazy-Newb-Pack/Lazy-Newb-Pack-Linux/issues/7][issue]].
-
-Once this bug is closed, I'll update this.
-
-#+BEGIN_SRC json :tangle resources/PyLNP.user
-{
-    "terminal": "xterm -e", 
-    "tkgui_height": 643, 
-    "tkgui_width": 386
-}
-#+END_SRC
 
 **** The final executable
 This basically checks if an existing container of the current version exists, and if so, restart the container.
@@ -280,7 +301,6 @@ docker run -ti \
        -e gid=$GROUP_ID \
        -v /tmp/.X11-unix:/tmp/.X11-unix \
        -v $WORK_DIR/df:/home/Urist/bin/df \
-       -v $WORK_DIR/resources/PyLNP.user:/home/Urist/bin/df/PyLNP.user \
        -l $PROJECT_NAME_LABEL=$PROJECT_NAME \
        -l $PROJECT_VERSION_LABEL=$PROJECT_VERSION \
        $image_id
